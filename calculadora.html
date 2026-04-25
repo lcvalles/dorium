@@ -97,6 +97,7 @@
   .storage-btn.primary:hover { background: var(--gold-900); border-color: var(--gold-900); color: var(--gold-100); }
   .storage-btn.danger { border-color: #e8c5c5; color: var(--danger); }
   .storage-btn.danger:hover { background: #fdf0f0; }
+  .storage-btn.icon { padding: 4px 8px; font-size: 0.85rem; letter-spacing: 0; }
 
   /* DROP ZONE */
   .drop-zone {
@@ -116,6 +117,37 @@
     color: var(--gold-600);
     background: var(--gold-50);
   }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(26,19,9,0.55); z-index: 1000;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 10px; padding: 2rem;
+    width: min(440px, 92vw); box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+    position: relative;
+  }
+  .modal-title {
+    font-family: 'Cormorant Garamond', serif; font-size: 1.3rem;
+    font-weight: 500; color: var(--gold-800); margin-bottom: 0.4rem;
+  }
+  .modal-sub { font-size: 0.78rem; color: var(--ink-soft); margin-bottom: 1.5rem; line-height: 1.6; }
+  .modal-sub a { color: var(--gold-600); }
+  .modal-close {
+    position: absolute; top: 1rem; right: 1rem;
+    background: none; border: none; font-size: 1.2rem;
+    cursor: pointer; color: var(--ink-soft); line-height: 1;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.25rem; }
+  .publish-status {
+    font-size: 0.74rem; color: var(--ink-soft); font-style: italic;
+    display: flex; align-items: center; gap: 0.4rem;
+  }
+  .publish-status.ok  { color: #3a7d44; }
+  .publish-status.err { color: var(--danger); }
 
   /* LAYOUT */
   .app { max-width: 980px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
@@ -296,21 +328,45 @@
   <a href="index.html" class="header-back">← Volver a la tienda</a>
 </header>
 
-<!-- Barra de estado de guardado -->
+<!-- Barra de estado -->
 <div class="storage-bar" id="storagebar">
   <div class="storage-status">
     <div class="storage-dot" id="storageDot"></div>
-    <span id="storageText">Cargando datos guardados…</span>
+    <span id="storageText">Cargando datos…</span>
   </div>
   <div class="storage-actions">
-    <div class="drop-zone" id="dropZone" title="Arrastra aquí un archivo dorium-datos.json para restaurar">
-      📂 Restaurar desde archivo
-    </div>
-    <button class="storage-btn primary" onclick="guardarJSON()">💾 Guardar datos</button>
-    <button class="storage-btn danger" onclick="limpiarTodo()">🗑 Limpiar todo</button>
+    <span class="publish-status" id="publishStatus"></span>
+    <button class="storage-btn primary" id="btnPublicar" onclick="publicarEnGitHub()" style="display:none">🌐 Publicar</button>
+    <button class="storage-btn icon" onclick="abrirConfigToken()" title="Configurar publicación">⚙️</button>
+    <button class="storage-btn danger" onclick="limpiarTodo()">🗑 Limpiar</button>
   </div>
 </div>
-<input type="file" id="importFile" accept=".json" style="display:none" onchange="procesarImporte(event)" />
+<input type="file" id="importFile" accept=".json" style="display:none" />
+
+<!-- Modal configuración token -->
+<div class="modal-overlay" id="modalToken">
+  <div class="modal">
+    <button class="modal-close" onclick="cerrarConfigToken()">✕</button>
+    <div class="modal-title">Configurar publicación</div>
+    <div class="modal-sub">
+      Ingresa tu token de GitHub para poder publicar los datos y que otros los vean al abrir la calculadora.<br><br>
+      <strong>Cómo obtener el token:</strong><br>
+      1. Ve a <a href="https://github.com/settings/tokens?type=beta" target="_blank">github.com/settings/tokens</a><br>
+      2. Clic en <strong>Generate new token</strong><br>
+      3. Dale acceso de escritura al repositorio <strong>dorium</strong><br>
+      4. Copia el token y pégalo aquí.<br><br>
+      El token se guarda solo en <strong>este dispositivo</strong>.
+    </div>
+    <div class="field">
+      <label>Token de GitHub</label>
+      <input type="password" id="inputToken" placeholder="github_pat_..." style="font-size:0.85rem" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="cerrarConfigToken()">Cancelar</button>
+      <button class="btn-primary" onclick="guardarToken()">Guardar token</button>
+    </div>
+  </div>
+</div>
 
 <main class="app">
   <div class="tabs">
@@ -544,78 +600,99 @@ function updateStorageStatus(ok) {
   }
 }
 
-/* ── GUARDAR JSON ── */
-function guardarJSON() {
-  const current = {
-    name:        document.getElementById('manilla-name')?.value || '',
-    ingredients: ingredients,
-    labor:       document.getElementById('cfg-labor')?.value  || '5000',
-    extra:       document.getElementById('cfg-extra')?.value  || '1000',
-    margin:      document.getElementById('cfg-margin')?.value || '100',
-  };
-  const data = { materials, history, nextId, current, savedDate: new Date().toISOString() };
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url;
-  a.download = 'dorium-datos.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('Datos guardados como dorium-datos.json');
+/* ── GITHUB SYNC ── */
+const GH_REPO    = 'lcvalles/dorium';
+const GH_FILE    = 'datos-dorium.json';
+const GH_RAW     = `https://raw.githubusercontent.com/${GH_REPO}/master/${GH_FILE}`;
+const GH_API     = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
+const LS_TOKEN   = 'dorium_gh_token';
+
+function getToken() { return localStorage.getItem(LS_TOKEN) || ''; }
+
+function abrirConfigToken() {
+  document.getElementById('inputToken').value = getToken();
+  document.getElementById('modalToken').classList.add('open');
+}
+function cerrarConfigToken() {
+  document.getElementById('modalToken').classList.remove('open');
+}
+function guardarToken() {
+  const t = document.getElementById('inputToken').value.trim();
+  if (!t) { showToast('Ingresa un token válido'); return; }
+  localStorage.setItem(LS_TOKEN, t);
+  cerrarConfigToken();
+  document.getElementById('btnPublicar').style.display = '';
+  showToast('Token guardado — ya puedes publicar');
 }
 
-function cargarDesdeJSON(data) {
+function setPublishStatus(msg, tipo) {
+  const el = document.getElementById('publishStatus');
+  el.textContent = msg;
+  el.className = 'publish-status' + (tipo ? ' ' + tipo : '');
+}
+
+async function cargarDesdeGitHub() {
   try {
-    if (!data.materials || !Array.isArray(data.materials)) { showToast('Archivo inválido'); return; }
-    materials   = data.materials;
-    history     = data.history || [];
-    nextId      = data.nextId  || 15;
-    if (data.current) {
-      const c = data.current;
-      if (c.name)        document.getElementById('manilla-name').value = c.name;
-      if (c.labor)       document.getElementById('cfg-labor').value    = c.labor;
-      if (c.extra)       document.getElementById('cfg-extra').value    = c.extra;
-      if (c.margin)      document.getElementById('cfg-margin').value   = c.margin;
-      if (Array.isArray(c.ingredients)) ingredients = c.ingredients;
-    }
+    const res = await fetch(GH_RAW + '?t=' + Date.now());
+    if (!res.ok) return false;
+    const data = await res.json();
+    if (!data.materials || !Array.isArray(data.materials)) return false;
+    materials = data.materials;
+    nextId    = data.nextId || 15;
     saveToStorage();
-    saveCurrentCalc();
-    renderIngredients();
-    renderMaterials();
-    renderHistory();
-    showToast(`✓ Datos restaurados · ${materials.length} materiales · ${history.length} piezas`);
+    setPublishStatus('Datos cargados desde la nube ✓', 'ok');
+    return true;
   } catch(e) {
-    showToast('Error al leer el archivo');
+    return false;
   }
 }
 
-/* ── DRAG & DROP / CLICK para restaurar ── */
-function initDropZone() {
-  const zone = document.getElementById('dropZone');
-  const file = document.getElementById('importFile');
-  if (!zone || !file) return;
+async function publicarEnGitHub() {
+  const token = getToken();
+  if (!token) { abrirConfigToken(); return; }
 
-  zone.addEventListener('click', () => file.click());
-  file.addEventListener('change', e => {
-    const f = e.target.files[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = ev => { try { cargarDesdeJSON(JSON.parse(ev.target.result)); } catch { showToast('Error al leer el archivo'); } };
-    reader.readAsText(f);
-    e.target.value = '';
-  });
+  setPublishStatus('Publicando…', '');
+  const btn = document.getElementById('btnPublicar');
+  btn.disabled = true;
 
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('drag-over');
-    const f = e.dataTransfer.files[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = ev => { try { cargarDesdeJSON(JSON.parse(ev.target.result)); } catch { showToast('Error al leer el archivo'); } };
-    reader.readAsText(f);
-  });
+  const payload = { materials, nextId, updatedAt: new Date().toISOString() };
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+
+  try {
+    // Obtener SHA actual del archivo (necesario para actualizarlo)
+    let sha = null;
+    const check = await fetch(GH_API, {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
+    });
+    if (check.ok) { const j = await check.json(); sha = j.sha; }
+
+    const body = { message: 'Actualizar datos calculadora', content };
+    if (sha) body.sha = sha;
+
+    const res = await fetch(GH_API, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      const now = new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
+      setPublishStatus(`Publicado a las ${now} ✓`, 'ok');
+      showToast('¡Datos publicados! Ya están disponibles para todos.');
+    } else {
+      const err = await res.json();
+      setPublishStatus('Error al publicar', 'err');
+      showToast('Error: ' + (err.message || res.status));
+    }
+  } catch(e) {
+    setPublishStatus('Error de conexión', 'err');
+    showToast('No se pudo conectar con GitHub');
+  }
+  btn.disabled = false;
 }
 
 function limpiarTodo() {
@@ -844,7 +921,19 @@ loadFromStorage();
 loadCurrentCalc();
 renderIngredients();
 recalc();
-initDropZone();
+
+// Mostrar botón publicar si ya hay token guardado
+if (getToken()) document.getElementById('btnPublicar').style.display = '';
+
+// Cargar materiales desde GitHub (para todos los usuarios)
+cargarDesdeGitHub().then(ok => {
+  if (ok) { renderIngredients(); renderMaterials(); }
+});
+
+// Cerrar modal al hacer clic fuera
+document.getElementById('modalToken').addEventListener('click', function(e) {
+  if (e.target === this) cerrarConfigToken();
+});
 </script>
 </body>
 </html>
