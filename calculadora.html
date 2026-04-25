@@ -61,7 +61,7 @@
   .header-back { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-200); text-decoration: none; opacity: 0.7; transition: opacity 0.2s; }
   .header-back:hover { opacity: 1; }
 
-  /* STORAGE INDICATOR */
+  /* STORAGE BAR */
   .storage-bar {
     background: rgba(201,148,13,0.08);
     border-bottom: 1px solid var(--border-soft);
@@ -78,7 +78,7 @@
   .storage-status { display: flex; align-items: center; gap: 0.4rem; }
   .storage-dot { width: 7px; height: 7px; border-radius: 50%; background: #4caf50; flex-shrink: 0; }
   .storage-dot.warn { background: var(--gold-400); }
-  .storage-actions { display: flex; gap: 0.75rem; }
+  .storage-actions { display: flex; gap: 0.75rem; align-items: center; }
   .storage-btn {
     font-family: 'Jost', sans-serif;
     font-size: 0.68rem;
@@ -93,8 +93,29 @@
     transition: all 0.15s;
   }
   .storage-btn:hover { border-color: var(--gold-400); color: var(--gold-600); }
+  .storage-btn.primary { background: var(--gold-800); border-color: var(--gold-800); color: var(--gold-100); }
+  .storage-btn.primary:hover { background: var(--gold-900); border-color: var(--gold-900); color: var(--gold-100); }
   .storage-btn.danger { border-color: #e8c5c5; color: var(--danger); }
   .storage-btn.danger:hover { background: #fdf0f0; }
+
+  /* DROP ZONE */
+  .drop-zone {
+    border: 1.5px dashed var(--border);
+    border-radius: 6px;
+    padding: 0.35rem 0.9rem;
+    font-size: 0.68rem;
+    color: var(--ink-soft);
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .drop-zone:hover, .drop-zone.drag-over {
+    border-color: var(--gold-400);
+    color: var(--gold-600);
+    background: var(--gold-50);
+  }
 
   /* LAYOUT */
   .app { max-width: 980px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
@@ -282,11 +303,14 @@
     <span id="storageText">Cargando datos guardados…</span>
   </div>
   <div class="storage-actions">
-    <button class="storage-btn" onclick="exportarDatos()">⬇ Exportar datos</button>
-    <button class="storage-btn" onclick="importarDatos()">⬆ Importar datos</button>
+    <div class="drop-zone" id="dropZone" title="Arrastra aquí un archivo dorium-datos.json para restaurar">
+      📂 Restaurar desde archivo
+    </div>
+    <button class="storage-btn primary" onclick="guardarJSON()">💾 Guardar datos</button>
     <button class="storage-btn danger" onclick="limpiarTodo()">🗑 Limpiar todo</button>
   </div>
 </div>
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="procesarImporte(event)" />
 
 <main class="app">
   <div class="tabs">
@@ -412,9 +436,6 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- Input oculto para importar -->
-<input type="file" id="importFile" accept=".json" style="display:none" onchange="procesarImporte(event)" />
-
 <script>
 /* ═══════════════════════════════════════════════════════════
    DORIUM — Calculadora con persistencia localStorage
@@ -523,49 +544,78 @@ function updateStorageStatus(ok) {
   }
 }
 
-/* ── EXPORT / IMPORT ── */
-function exportarDatos() {
-  const data = { materials, history, nextId, exportDate: new Date().toISOString() };
+/* ── GUARDAR JSON ── */
+function guardarJSON() {
+  const current = {
+    name:        document.getElementById('manilla-name')?.value || '',
+    ingredients: ingredients,
+    labor:       document.getElementById('cfg-labor')?.value  || '5000',
+    extra:       document.getElementById('cfg-extra')?.value  || '1000',
+    margin:      document.getElementById('cfg-margin')?.value || '100',
+  };
+  const data = { materials, history, nextId, current, savedDate: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
   a.href = url;
-  a.download = `dorium-datos-${new Date().toISOString().slice(0,10)}.json`;
+  a.download = 'dorium-datos.json';
   a.click();
   URL.revokeObjectURL(url);
-  showToast('Datos exportados correctamente');
+  showToast('Datos guardados como dorium-datos.json');
 }
 
-function importarDatos() {
-  document.getElementById('importFile').click();
-}
-
-function procesarImporte(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data.materials || !Array.isArray(data.materials)) {
-        showToast('Archivo inválido');
-        return;
-      }
-      if (!confirm(`¿Importar ${data.materials.length} materiales y ${(data.history||[]).length} piezas del historial? Se reemplazarán los datos actuales.`)) return;
-      materials = data.materials;
-      history   = data.history || [];
-      nextId    = data.nextId  || 15;
-      saveToStorage();
-      renderIngredients();
-      renderMaterials();
-      renderHistory();
-      showToast('Datos importados correctamente');
-    } catch(err) {
-      showToast('Error al leer el archivo');
+function cargarDesdeJSON(data) {
+  try {
+    if (!data.materials || !Array.isArray(data.materials)) { showToast('Archivo inválido'); return; }
+    materials   = data.materials;
+    history     = data.history || [];
+    nextId      = data.nextId  || 15;
+    if (data.current) {
+      const c = data.current;
+      if (c.name)        document.getElementById('manilla-name').value = c.name;
+      if (c.labor)       document.getElementById('cfg-labor').value    = c.labor;
+      if (c.extra)       document.getElementById('cfg-extra').value    = c.extra;
+      if (c.margin)      document.getElementById('cfg-margin').value   = c.margin;
+      if (Array.isArray(c.ingredients)) ingredients = c.ingredients;
     }
-  };
-  reader.readAsText(file);
-  event.target.value = '';
+    saveToStorage();
+    saveCurrentCalc();
+    renderIngredients();
+    renderMaterials();
+    renderHistory();
+    showToast(`✓ Datos restaurados · ${materials.length} materiales · ${history.length} piezas`);
+  } catch(e) {
+    showToast('Error al leer el archivo');
+  }
+}
+
+/* ── DRAG & DROP / CLICK para restaurar ── */
+function initDropZone() {
+  const zone = document.getElementById('dropZone');
+  const file = document.getElementById('importFile');
+  if (!zone || !file) return;
+
+  zone.addEventListener('click', () => file.click());
+  file.addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => { try { cargarDesdeJSON(JSON.parse(ev.target.result)); } catch { showToast('Error al leer el archivo'); } };
+    reader.readAsText(f);
+    e.target.value = '';
+  });
+
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => { try { cargarDesdeJSON(JSON.parse(ev.target.result)); } catch { showToast('Error al leer el archivo'); } };
+    reader.readAsText(f);
+  });
 }
 
 function limpiarTodo() {
@@ -794,6 +844,7 @@ loadFromStorage();
 loadCurrentCalc();
 renderIngredients();
 recalc();
+initDropZone();
 </script>
 </body>
 </html>
