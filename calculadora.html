@@ -297,7 +297,7 @@
 
   <!-- ═══ CALCULAR ═══ -->
   <div id="tab-calc" class="panel active">
-    <input class="manilla-name-input" id="manilla-name" placeholder="Nombre de la pieza (ej: Manilla balines 4mm roja)" />
+    <input class="manilla-name-input" id="manilla-name" placeholder="Nombre de la pieza (ej: Manilla balines 4mm roja)" oninput="saveCurrentCalc()" />
 
     <div class="section-label">Materiales de la pieza</div>
     <div class="card">
@@ -314,15 +314,15 @@
       <div class="config-grid">
         <div class="field">
           <label>Mano de obra ($)</label>
-          <input type="number" id="cfg-labor" value="5000" min="0" oninput="recalc()" />
+          <input type="number" id="cfg-labor" value="5000" min="0" oninput="recalc(); saveCurrentCalc()" />
         </div>
         <div class="field">
           <label>Gastos extras ($)</label>
-          <input type="number" id="cfg-extra" value="1000" min="0" oninput="recalc()" />
+          <input type="number" id="cfg-extra" value="1000" min="0" oninput="recalc(); saveCurrentCalc()" />
         </div>
         <div class="field">
           <label>Margen de ganancia (%)</label>
-          <input type="number" id="cfg-margin" value="100" min="0" oninput="recalc()" />
+          <input type="number" id="cfg-margin" value="100" min="0" oninput="recalc(); saveCurrentCalc()" />
         </div>
       </div>
     </div>
@@ -422,9 +422,10 @@
    No se pierden al cerrar la pestaña.
    ═══════════════════════════════════════════════════════════ */
 
-const LS_MATERIALS = 'dorium_materials';
-const LS_HISTORY   = 'dorium_history';
-const LS_NEXTID    = 'dorium_nextid';
+const LS_MATERIALS   = 'dorium_materials';
+const LS_HISTORY     = 'dorium_history';
+const LS_NEXTID      = 'dorium_nextid';
+const LS_CURRENT     = 'dorium_current';
 
 /* ── MATERIALES POR DEFECTO ── */
 const DEFAULT_MATERIALS = [
@@ -480,6 +481,32 @@ function saveToStorage() {
     console.warn('No se pudo guardar en localStorage:', e);
     updateStorageStatus(false);
   }
+}
+
+function saveCurrentCalc() {
+  try {
+    const state = {
+      name:        document.getElementById('manilla-name')?.value || '',
+      ingredients: ingredients,
+      labor:       document.getElementById('cfg-labor')?.value  || '5000',
+      extra:       document.getElementById('cfg-extra')?.value  || '1000',
+      margin:      document.getElementById('cfg-margin')?.value || '100',
+    };
+    localStorage.setItem(LS_CURRENT, JSON.stringify(state));
+  } catch(e) {}
+}
+
+function loadCurrentCalc() {
+  try {
+    const saved = localStorage.getItem(LS_CURRENT);
+    if (!saved) return;
+    const state = JSON.parse(saved);
+    if (state.name)   document.getElementById('manilla-name').value  = state.name;
+    if (state.labor)  document.getElementById('cfg-labor').value     = state.labor;
+    if (state.extra)  document.getElementById('cfg-extra').value     = state.extra;
+    if (state.margin) document.getElementById('cfg-margin').value    = state.margin;
+    if (Array.isArray(state.ingredients)) ingredients = state.ingredients;
+  } catch(e) {}
 }
 
 function updateStorageStatus(ok) {
@@ -546,6 +573,7 @@ function limpiarTodo() {
   localStorage.removeItem(LS_MATERIALS);
   localStorage.removeItem(LS_HISTORY);
   localStorage.removeItem(LS_NEXTID);
+  localStorage.removeItem(LS_CURRENT);
   materials  = [...DEFAULT_MATERIALS];
   history    = [];
   nextId     = 15;
@@ -631,21 +659,25 @@ function addIngredient() {
   if (!materials.length) { showToast('Primero agrega materiales en la pestaña Materiales'); return; }
   ingredients.push({matId: materials[0].id, qty: 1});
   renderIngredients();
+  saveCurrentCalc();
 }
 
 function removeIngredient(idx) {
   ingredients.splice(idx, 1);
   renderIngredients();
+  saveCurrentCalc();
 }
 
 function updateIngMat(idx, val) {
   ingredients[idx].matId = parseInt(val);
   renderIngredients();
+  saveCurrentCalc();
 }
 
 function updateIngQty(idx, val) {
   ingredients[idx].qty = Math.max(1, parseInt(val) || 1);
   renderIngredients();
+  saveCurrentCalc();
 }
 
 function renderIngredients() {
@@ -759,6 +791,7 @@ function showToast(msg) {
 
 /* ── INIT ── */
 loadFromStorage();
+loadCurrentCalc();
 renderIngredients();
 recalc();
 </script>
