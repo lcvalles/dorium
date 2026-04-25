@@ -1,0 +1,104 @@
+{
+  "materials": [
+    {
+      "id": 1,
+      "name": "Hilo coreano/chino",
+      "tipo": "",
+      "qty": 2,
+      "price": 16000
+    },
+    {
+      "id": 2,
+      "name": "Balines lisos",
+      "tipo": "3MM",
+      "qty": 10,
+      "price": 175000
+    },
+    {
+      "id": 3,
+      "name": "Balines lisos",
+      "tipo": "4MM",
+      "qty": 10,
+      "price": 336000
+    },
+    {
+      "id": 4,
+      "name": "Balines lisos",
+      "tipo": "5MM",
+      "qty": 10,
+      "price": 489000
+    },
+    {
+      "id": 5,
+      "name": "Balines diamantados",
+      "tipo": "3MM",
+      "qty": 10,
+      "price": 175000
+    },
+    {
+      "id": 6,
+      "name": "Balines diamantados",
+      "tipo": "4MM",
+      "qty": 10,
+      "price": 336000
+    },
+    {
+      "id": 7,
+      "name": "Balines diamantados",
+      "tipo": "5MM",
+      "qty": 10,
+      "price": 489000
+    },
+    {
+      "id": 8,
+      "name": "Balin diamantado unitario",
+      "tipo": "3MM",
+      "qty": 1,
+      "price": 22000
+    },
+    {
+      "id": 9,
+      "name": "Balin diamantado unitario",
+      "tipo": "4MM",
+      "qty": 1,
+      "price": 39000
+    },
+    {
+      "id": 10,
+      "name": "Balin diamantado unitario",
+      "tipo": "5MM",
+      "qty": 1,
+      "price": 53700
+    },
+    {
+      "id": 11,
+      "name": "Balin liso unitario",
+      "tipo": "3MM",
+      "qty": 1,
+      "price": 19000
+    },
+    {
+      "id": 12,
+      "name": "Balin liso unitario",
+      "tipo": "4MM",
+      "qty": 1,
+      "price": 38000
+    },
+    {
+      "id": 13,
+      "name": "Balin liso unitario",
+      "tipo": "5MM",
+      "qty": 1,
+      "price": 58000
+    },
+    {
+      "id": 14,
+      "name": "Placa redonda peq.",
+      "tipo": "",
+      "qty": 1,
+      "price": 160000
+    }
+  ],
+  "nextId": 15,
+  "updatedAt": "2026-04-25T03:03:30.872Z"
+}
