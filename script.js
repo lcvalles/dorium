@@ -47,7 +47,7 @@ const PRODUCTOS = [
     precio: 85000,
     historia: "Tejida con hilo negro profundo, sus balines de oro 18K evocan los rayos del sol que atraviesan la noche. Para quien lleva luz en la oscuridad.",
     materiales: "Hilo negro · Balines oro 18K · 3 unidades",
-    imagen: "assets/images/manilla-negra.jpg",   // ← reemplaza con tu foto
+    imagen: "assets/images/manilla-negra-1.png",
     badge: "Favorito"
   },
   {
@@ -56,7 +56,7 @@ const PRODUCTOS = [
     precio: 85000,
     historia: "El rojo es el color de la pasión y la energía vital. Sus balines dorados conectan el fuego interior con el universo exterior.",
     materiales: "Hilo rojo · Balines oro 18K · 3 unidades",
-    imagen: "assets/images/manilla-roja.jpg",    // ← reemplaza con tu foto
+    imagen: "assets/images/manilla-roja-1.png",
     badge: "Nuevo"
   },
   {
