@@ -60,15 +60,6 @@ const PRODUCTOS = [
     badge: "Nuevo"
   },
   {
-    id: 3,
-    nombre: "Manilla Verde Tierra",
-    precio: 90000,
-    historia: "El verde de la naturaleza, el arraigo y la abundancia. Con cinco balines de oro que representan los ciclos de crecimiento.",
-    materiales: "Hilo verde · Balines oro 18K · 5 unidades",
-    imagen: "",
-    badge: ""
-  },
-  {
     id: 4,
     nombre: "Manilla Aura",
     precio: 195000,
