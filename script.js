@@ -44,7 +44,7 @@ const PRODUCTOS = [
   {
     id: 1,
     nombre: "Manilla Sol Negro",
-    precio: 85000,
+    precio: 140000,
     historia: "Tejida con hilo negro profundo, sus balines de oro 18K evocan los rayos del sol que atraviesan la noche. Para quien lleva luz en la oscuridad.",
     materiales: "Hilo negro · Balines oro 18K · 3 unidades",
     imagen: "assets/images/manilla-negra-1.png",
@@ -53,7 +53,7 @@ const PRODUCTOS = [
   {
     id: 2,
     nombre: "Manilla Hilo Rojo",
-    precio: 85000,
+    precio: 100000,
     historia: "El rojo es el color de la pasión y la energía vital. Sus balines dorados conectan el fuego interior con el universo exterior.",
     materiales: "Hilo rojo · Balines oro 18K · 3 unidades",
     imagen: "assets/images/manilla-roja-1.png",
@@ -65,12 +65,21 @@ const PRODUCTOS = [
     precio: 90000,
     historia: "El verde de la naturaleza, el arraigo y la abundancia. Con cinco balines de oro que representan los ciclos de crecimiento.",
     materiales: "Hilo verde · Balines oro 18K · 5 unidades",
-    imagen: "",   // sin foto aún
+    imagen: "",
     badge: ""
+  },
+  {
+    id: 4,
+    nombre: "Manilla Aura",
+    precio: 195000,
+    historia: "Una pieza que irradia energía y presencia. Sus balines de oro 18K capturan la luz como un aura dorada alrededor de la muñeca.",
+    materiales: "Hilo · Balines oro 18K",
+    imagen: "assets/images/manilla-aura-1.png",
+    badge: "Nuevo"
   },
   /* ── AGREGA MÁS MANILLAS AQUÍ ──
   {
-    id: 4,
+    id: 5,
     nombre: "Nombre de tu manilla",
     precio: 95000,
     historia: "Historia o significado de esta pieza.",
