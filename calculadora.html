@@ -426,6 +426,7 @@
 
     <div class="save-row">
       <span class="save-note">Se guarda en la nube con tu nombre para que DORIUM lo consulte</span>
+      <button class="btn-secondary" onclick="nuevaPieza()">+ Nueva pieza</button>
       <button class="btn-primary" onclick="saveManilla()">Guardar en historial</button>
     </div>
   </div>
@@ -747,8 +748,10 @@ function saveManilla() {
     name, matCost, labor, extra, total, sale, margin, summary,
     vendedor: vendorName,
     date: new Date().toLocaleDateString('es-CO', {day:'2-digit', month:'short', year:'numeric'})
-  }).then(() => showToast('¡Guardada en historial! ✓'))
-    .catch(() => showToast('Error al guardar'));
+  }).then(() => {
+    showToast('¡Guardada en historial! ✓');
+    nuevaPieza();
+  }).catch(() => showToast('Error al guardar'));
 }
 
 /* ── HISTORIAL ── */
@@ -780,14 +783,19 @@ function deleteHistory(i) {
     .catch(() => showToast('Error al eliminar'));
 }
 
-/* ── LIMPIAR CÁLCULO ACTUAL ── */
-function limpiarCalc() {
-  if (!confirm('¿Limpiar el cálculo actual?')) return;
+/* ── NUEVA PIEZA / LIMPIAR ── */
+function nuevaPieza() {
   document.getElementById('manilla-name').value = '';
   ingredients = [];
   localStorage.removeItem(LS_CURRENT);
   renderIngredients();
   recalc();
+  document.getElementById('manilla-name').focus();
+}
+
+function limpiarCalc() {
+  if (!confirm('¿Limpiar el cálculo actual?')) return;
+  nuevaPieza();
 }
 
 /* ── TOAST ── */
