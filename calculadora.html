@@ -338,23 +338,7 @@
   </div>
   <div class="storage-actions">
     <span class="publish-status" id="publishStatus"></span>
-    <button class="storage-btn" onclick="abrirModalVendedor()" id="btnVendedor" title="Cambiar nombre">👤 <span id="vendorLabel">—</span></button>
     <button class="storage-btn danger" onclick="limpiarCalc()">🗑 Limpiar</button>
-  </div>
-</div>
-
-<!-- Modal nombre de vendedor -->
-<div class="modal-overlay" id="modalVendedor">
-  <div class="modal">
-    <div class="modal-title">¿Cómo te llamas?</div>
-    <div class="modal-sub">Tu nombre aparece en el historial para que DORIUM pueda identificar cada cálculo.</div>
-    <div class="field">
-      <label>Tu nombre</label>
-      <input type="text" id="inputVendedor" placeholder="Ej: Laura, Ana, Carlos…" style="font-size:1rem" />
-    </div>
-    <div class="modal-actions">
-      <button class="btn-primary" onclick="guardarVendedor()">Entrar</button>
-    </div>
   </div>
 </div>
 
@@ -501,7 +485,6 @@ firebase.initializeApp({
 });
 const db = firebase.database();
 
-const LS_VENDOR  = 'dorium_vendor';
 const LS_CURRENT = 'dorium_current';
 
 /* ── ESTADO ── */
@@ -509,23 +492,8 @@ let materials   = [];
 let ingredients = [];
 let history     = [];
 let nextId      = 15;
-let vendorName  = '';
 let historyKeys = [];
 
-/* ── VENDOR ── */
-function abrirModalVendedor() {
-  document.getElementById('inputVendedor').value = vendorName;
-  document.getElementById('modalVendedor').classList.add('open');
-}
-function guardarVendedor() {
-  const v = document.getElementById('inputVendedor').value.trim();
-  if (!v) { showToast('Escribe tu nombre'); return; }
-  vendorName = v;
-  localStorage.setItem(LS_VENDOR, v);
-  document.getElementById('vendorLabel').textContent = v;
-  document.getElementById('modalVendedor').classList.remove('open');
-  suscribirHistorial();
-}
 
 /* ── FIREBASE: MATERIALES (tiempo real) ── */
 db.ref('materials').on('value',
@@ -559,8 +527,7 @@ function saveMaterials() {
 
 /* ── FIREBASE: HISTORIAL ── */
 function suscribirHistorial() {
-  if (!vendorName) return;
-  db.ref('historial/' + vendorName).on('value', snap => {
+  db.ref('historial').on('value', snap => {
     const val = snap.val();
     if (val) {
       historyKeys = Object.keys(val);
@@ -728,7 +695,6 @@ function recalc() {
 
 /* ── GUARDAR MANILLA ── */
 function saveManilla() {
-  if (!vendorName) { abrirModalVendedor(); return; }
   const name = document.getElementById('manilla-name').value.trim() || 'Manilla sin nombre';
   const matCost = ingredients.reduce((s, ing) => {
     const m = materials.find(m => m.id === ing.matId);
@@ -744,9 +710,8 @@ function saveManilla() {
     return m ? `${ing.qty}× ${matLabel(m)}` : '';
   }).filter(Boolean).join(', ');
 
-  db.ref('historial/' + vendorName).push({
+  db.ref('historial').push({
     name, matCost, labor, extra, total, sale, margin, summary,
-    vendedor: vendorName,
     date: new Date().toLocaleDateString('es-CO', {day:'2-digit', month:'short', year:'numeric'})
   }).then(() => {
     showToast('¡Guardada en historial! ✓');
@@ -778,7 +743,7 @@ function renderHistory() {
 function deleteHistory(i) {
   if (!confirm('¿Eliminar esta pieza del historial?')) return;
   const key = historyKeys[historyKeys.length - 1 - i];
-  db.ref('historial/' + vendorName + '/' + key).remove()
+  db.ref('historial/' + key).remove()
     .then(() => showToast('Eliminada'))
     .catch(() => showToast('Error al eliminar'));
 }
@@ -807,20 +772,10 @@ function showToast(msg) {
 }
 
 /* ── INIT ── */
-vendorName = localStorage.getItem(LS_VENDOR) || '';
-document.getElementById('vendorLabel').textContent = vendorName || '—';
-if (!vendorName) {
-  document.getElementById('modalVendedor').classList.add('open');
-} else {
-  suscribirHistorial();
-}
+suscribirHistorial();
 loadCurrentCalc();
 renderIngredients();
 recalc();
-
-document.getElementById('modalVendedor').addEventListener('click', function(e) {
-  if (e.target === this && vendorName) this.classList.remove('open');
-});
 </script>
 </body>
 </html>
