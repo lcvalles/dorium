@@ -96,7 +96,7 @@ function renderCatalog() {
     }).format(p.precio);
 
     const imagenHTML = p.imagen
-      ? `<img src="${p.imagen}" alt="${p.nombre}" loading="lazy" />`
+      ? `<img src="${p.imagen}" alt="${p.nombre}" loading="lazy" class="product-img-zoom" onclick="openLightbox('${p.imagen}','${p.nombre}')" />`
       : `<div class="product-image-placeholder">
            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="rgba(201,148,13,0.4)" stroke-width="1.5">
              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -279,10 +279,36 @@ function initAOS() {
 /* ════════════════════════════════════════
    INIT
    ════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   8. LIGHTBOX DE IMAGEN
+   ════════════════════════════════════════ */
+function openLightbox(src, alt) {
+  const lb = document.getElementById('lightbox');
+  const img = document.getElementById('lightboxImg');
+  if (!lb || !img) return;
+  img.src = src;
+  img.alt = alt;
+  lb.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLightbox() {
+  const lb = document.getElementById('lightbox');
+  if (!lb) return;
+  lb.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+
 document.addEventListener('DOMContentLoaded', () => {
   renderCatalog();
   updatePreview();
   initNavbar();
   initMobileMenu();
   initAOS();
+
+  document.getElementById('lightbox')?.addEventListener('click', function(e) {
+    if (e.target === this) closeLightbox();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 });
