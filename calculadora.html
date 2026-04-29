@@ -751,6 +751,9 @@ function deleteHistory(i) {
 /* ── NUEVA PIEZA / LIMPIAR ── */
 function nuevaPieza() {
   document.getElementById('manilla-name').value = '';
+  document.getElementById('cfg-labor').value  = '5000';
+  document.getElementById('cfg-extra').value  = '1000';
+  document.getElementById('cfg-margin').value = '100';
   ingredients = [];
   localStorage.removeItem(LS_CURRENT);
   renderIngredients();
