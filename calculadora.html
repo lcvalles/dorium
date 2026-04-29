@@ -535,28 +535,28 @@ function guardarVendedor() {
 }
 
 /* ── FIREBASE: MATERIALES (tiempo real) ── */
-db.ref('materials').on('value', snap => {
-  const val = snap.val();
-  if (val && Array.isArray(val)) {
-    materials = val;
-    nextId = Math.max(...materials.map(m => m.id), 14) + 1;
-  } else {
-    materials = DEFAULT_MATERIALS;
+db.ref('materials').on('value',
+  snap => {
+    const val = snap.val();
+    if (val && Array.isArray(val)) {
+      materials = val;
+      nextId = Math.max(...materials.map(m => m.id), 14) + 1;
+    }
+    renderIngredients();
+    renderMaterials();
+    const dot = document.getElementById('storageDot');
+    const txt = document.getElementById('storageText');
+    if (dot) dot.classList.remove('warn');
+    if (txt) txt.textContent = `Conectado · ${materials.length} materiales`;
+  },
+  err => {
+    const dot = document.getElementById('storageDot');
+    const txt = document.getElementById('storageText');
+    if (dot) dot.classList.add('warn');
+    if (txt) txt.textContent = 'Sin conexión — verifica las reglas de Firebase';
+    console.error('Firebase error:', err);
   }
-  renderIngredients();
-  renderMaterials();
-  const dot = document.getElementById('storageDot');
-  const txt = document.getElementById('storageText');
-  if (dot) dot.classList.remove('warn');
-  if (txt) txt.textContent = `Conectado · ${materials.length} materiales`;
-});
-
-db.ref('materials').on('value', () => {}, err => {
-  const dot = document.getElementById('storageDot');
-  const txt = document.getElementById('storageText');
-  if (dot) dot.classList.add('warn');
-  if (txt) txt.textContent = 'Sin conexión a Firebase';
-});
+);
 
 function saveMaterials() {
   db.ref('materials').set(materials)
