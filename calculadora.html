@@ -6,6 +6,8 @@
 <title>DORIUM — Calculadora de Precios para Vendedores</title>
 <meta name="robots" content="noindex" />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet" />
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -332,38 +334,26 @@
 <div class="storage-bar" id="storagebar">
   <div class="storage-status">
     <div class="storage-dot" id="storageDot"></div>
-    <span id="storageText">Cargando datos…</span>
+    <span id="storageText">Conectando…</span>
   </div>
   <div class="storage-actions">
     <span class="publish-status" id="publishStatus"></span>
-    <button class="storage-btn primary" id="btnPublicar" onclick="publicarEnGitHub()" style="display:none">🌐 Publicar</button>
-    <button class="storage-btn icon" onclick="abrirConfigToken()" title="Configurar publicación">⚙️</button>
-    <button class="storage-btn danger" onclick="limpiarTodo()">🗑 Limpiar</button>
+    <button class="storage-btn" onclick="abrirModalVendedor()" id="btnVendedor" title="Cambiar nombre">👤 <span id="vendorLabel">—</span></button>
+    <button class="storage-btn danger" onclick="limpiarCalc()">🗑 Limpiar</button>
   </div>
 </div>
-<input type="file" id="importFile" accept=".json" style="display:none" />
 
-<!-- Modal configuración token -->
-<div class="modal-overlay" id="modalToken">
+<!-- Modal nombre de vendedor -->
+<div class="modal-overlay" id="modalVendedor">
   <div class="modal">
-    <button class="modal-close" onclick="cerrarConfigToken()">✕</button>
-    <div class="modal-title">Configurar publicación</div>
-    <div class="modal-sub">
-      Ingresa tu token de GitHub para poder publicar los datos y que otros los vean al abrir la calculadora.<br><br>
-      <strong>Cómo obtener el token:</strong><br>
-      1. Ve a <a href="https://github.com/settings/tokens?type=beta" target="_blank">github.com/settings/tokens</a><br>
-      2. Clic en <strong>Generate new token</strong><br>
-      3. Dale acceso de escritura al repositorio <strong>dorium</strong><br>
-      4. Copia el token y pégalo aquí.<br><br>
-      El token se guarda solo en <strong>este dispositivo</strong>.
-    </div>
+    <div class="modal-title">¿Cómo te llamas?</div>
+    <div class="modal-sub">Tu nombre aparece en el historial para que DORIUM pueda identificar cada cálculo.</div>
     <div class="field">
-      <label>Token de GitHub</label>
-      <input type="password" id="inputToken" placeholder="github_pat_..." style="font-size:0.85rem" />
+      <label>Tu nombre</label>
+      <input type="text" id="inputVendedor" placeholder="Ej: Laura, Ana, Carlos…" style="font-size:1rem" />
     </div>
     <div class="modal-actions">
-      <button class="btn-secondary" onclick="cerrarConfigToken()">Cancelar</button>
-      <button class="btn-primary" onclick="guardarToken()">Guardar token</button>
+      <button class="btn-primary" onclick="guardarVendedor()">Entrar</button>
     </div>
   </div>
 </div>
@@ -435,7 +425,7 @@
     </div>
 
     <div class="save-row">
-      <span class="save-note">Guarda la pieza para consultarla después (se guarda en este dispositivo)</span>
+      <span class="save-note">Se guarda en la nube con tu nombre para que DORIUM lo consulte</span>
       <button class="btn-primary" onclick="saveManilla()">Guardar en historial</button>
     </div>
   </div>
@@ -494,33 +484,26 @@
 
 <script>
 /* ═══════════════════════════════════════════════════════════
-   DORIUM — Calculadora con persistencia localStorage
-   Los datos se guardan AUTOMÁTICAMENTE en el navegador.
-   No se pierden al cerrar la pestaña.
+   DORIUM — Calculadora con Firebase Realtime Database
+   Materiales e historial sincronizados en la nube.
    ═══════════════════════════════════════════════════════════ */
 
-const LS_MATERIALS   = 'dorium_materials';
-const LS_HISTORY     = 'dorium_history';
-const LS_NEXTID      = 'dorium_nextid';
-const LS_CURRENT     = 'dorium_current';
+/* ── FIREBASE ── */
+firebase.initializeApp({
+  apiKey:            "AIzaSyCj7GfjShyAqAcsb06IkJtdIJpR3pjpHSE",
+  authDomain:        "dorium-b3c23.firebaseapp.com",
+  databaseURL:       "https://dorium-b3c23-default-rtdb.firebaseio.com",
+  projectId:         "dorium-b3c23",
+  storageBucket:     "dorium-b3c23.firebasestorage.app",
+  messagingSenderId: "678681379934",
+  appId:             "1:678681379934:web:151981cf97932f9af520cf"
+});
+const db = firebase.database();
 
-/* ── MATERIALES POR DEFECTO ── */
-const DEFAULT_MATERIALS = [
-  {id:1,  name:"Hilo coreano/chino",       tipo:"",    qty:2,  price:16000},
-  {id:2,  name:"Balines lisos",            tipo:"3MM", qty:10, price:175000},
-  {id:3,  name:"Balines lisos",            tipo:"4MM", qty:10, price:336000},
-  {id:4,  name:"Balines lisos",            tipo:"5MM", qty:10, price:489000},
-  {id:5,  name:"Balines diamantados",      tipo:"3MM", qty:10, price:175000},
-  {id:6,  name:"Balines diamantados",      tipo:"4MM", qty:10, price:336000},
-  {id:7,  name:"Balines diamantados",      tipo:"5MM", qty:10, price:489000},
-  {id:8,  name:"Balín diamantado unitario",tipo:"3MM", qty:1,  price:22000},
-  {id:9,  name:"Balín diamantado unitario",tipo:"4MM", qty:1,  price:39000},
-  {id:10, name:"Balín diamantado unitario",tipo:"5MM", qty:1,  price:53700},
-  {id:11, name:"Balín liso unitario",      tipo:"3MM", qty:1,  price:19000},
-  {id:12, name:"Balín liso unitario",      tipo:"4MM", qty:1,  price:38000},
-  {id:13, name:"Balín liso unitario",      tipo:"5MM", qty:1,  price:58000},
-  {id:14, name:"Placa redonda peq.",       tipo:"",    qty:1,  price:160000},
-];
+const LS_VENDOR  = 'dorium_vendor';
+const LS_CURRENT = 'dorium_current';
+
+const DEFAULT_MATERIALS = [];
 
 /* ── ESTADO ── */
 let materials  = [];
@@ -528,48 +511,85 @@ let ingredients = [];
 let history    = [];
 let nextId     = 15;
 
-/* ── PERSISTENCIA ── */
-function loadFromStorage() {
-  try {
-    const savedMats = localStorage.getItem(LS_MATERIALS);
-    const savedHist = localStorage.getItem(LS_HISTORY);
-    const savedId   = localStorage.getItem(LS_NEXTID);
+/* ── ESTADO ── */
+let materials   = [];
+let ingredients = [];
+let history     = [];
+let nextId      = 15;
+let vendorName  = '';
+let historyKeys = [];
 
-    materials = savedMats ? JSON.parse(savedMats) : [...DEFAULT_MATERIALS];
-    history   = savedHist ? JSON.parse(savedHist) : [];
-    nextId    = savedId   ? parseInt(savedId)     : 15;
-
-    updateStorageStatus(true);
-  } catch(e) {
-    materials = [...DEFAULT_MATERIALS];
-    history   = [];
-    nextId    = 15;
-    updateStorageStatus(false);
-  }
+/* ── VENDOR ── */
+function abrirModalVendedor() {
+  document.getElementById('inputVendedor').value = vendorName;
+  document.getElementById('modalVendedor').classList.add('open');
+}
+function guardarVendedor() {
+  const v = document.getElementById('inputVendedor').value.trim();
+  if (!v) { showToast('Escribe tu nombre'); return; }
+  vendorName = v;
+  localStorage.setItem(LS_VENDOR, v);
+  document.getElementById('vendorLabel').textContent = v;
+  document.getElementById('modalVendedor').classList.remove('open');
+  suscribirHistorial();
 }
 
-function saveToStorage() {
-  try {
-    localStorage.setItem(LS_MATERIALS, JSON.stringify(materials));
-    localStorage.setItem(LS_HISTORY,   JSON.stringify(history));
-    localStorage.setItem(LS_NEXTID,    String(nextId));
-    updateStorageStatus(true);
-  } catch(e) {
-    console.warn('No se pudo guardar en localStorage:', e);
-    updateStorageStatus(false);
+/* ── FIREBASE: MATERIALES (tiempo real) ── */
+db.ref('materials').on('value', snap => {
+  const val = snap.val();
+  if (val && Array.isArray(val)) {
+    materials = val;
+    nextId = Math.max(...materials.map(m => m.id), 14) + 1;
+  } else {
+    materials = DEFAULT_MATERIALS;
   }
+  renderIngredients();
+  renderMaterials();
+  const dot = document.getElementById('storageDot');
+  const txt = document.getElementById('storageText');
+  if (dot) dot.classList.remove('warn');
+  if (txt) txt.textContent = `Conectado · ${materials.length} materiales`;
+});
+
+db.ref('materials').on('value', () => {}, err => {
+  const dot = document.getElementById('storageDot');
+  const txt = document.getElementById('storageText');
+  if (dot) dot.classList.add('warn');
+  if (txt) txt.textContent = 'Sin conexión a Firebase';
+});
+
+function saveMaterials() {
+  db.ref('materials').set(materials)
+    .then(() => showToast('Material guardado en la nube ✓'))
+    .catch(() => showToast('Error al guardar en la nube'));
 }
 
+/* ── FIREBASE: HISTORIAL ── */
+function suscribirHistorial() {
+  if (!vendorName) return;
+  db.ref('historial/' + vendorName).on('value', snap => {
+    const val = snap.val();
+    if (val) {
+      historyKeys = Object.keys(val);
+      history = historyKeys.map(k => val[k]).reverse();
+    } else {
+      historyKeys = [];
+      history = [];
+    }
+    renderHistory();
+  });
+}
+
+/* ── CALC STATE (localStorage) ── */
 function saveCurrentCalc() {
   try {
-    const state = {
+    localStorage.setItem(LS_CURRENT, JSON.stringify({
       name:        document.getElementById('manilla-name')?.value || '',
-      ingredients: ingredients,
+      ingredients,
       labor:       document.getElementById('cfg-labor')?.value  || '5000',
       extra:       document.getElementById('cfg-extra')?.value  || '1000',
       margin:      document.getElementById('cfg-margin')?.value || '100',
-    };
-    localStorage.setItem(LS_CURRENT, JSON.stringify(state));
+    }));
   } catch(e) {}
 }
 
@@ -577,139 +597,13 @@ function loadCurrentCalc() {
   try {
     const saved = localStorage.getItem(LS_CURRENT);
     if (!saved) return;
-    const state = JSON.parse(saved);
-    if (state.name)   document.getElementById('manilla-name').value  = state.name;
-    if (state.labor)  document.getElementById('cfg-labor').value     = state.labor;
-    if (state.extra)  document.getElementById('cfg-extra').value     = state.extra;
-    if (state.margin) document.getElementById('cfg-margin').value    = state.margin;
-    if (Array.isArray(state.ingredients)) ingredients = state.ingredients;
+    const s = JSON.parse(saved);
+    if (s.name)   document.getElementById('manilla-name').value = s.name;
+    if (s.labor)  document.getElementById('cfg-labor').value    = s.labor;
+    if (s.extra)  document.getElementById('cfg-extra').value    = s.extra;
+    if (s.margin) document.getElementById('cfg-margin').value   = s.margin;
+    if (Array.isArray(s.ingredients)) ingredients = s.ingredients;
   } catch(e) {}
-}
-
-function updateStorageStatus(ok) {
-  const dot  = document.getElementById('storageDot');
-  const text = document.getElementById('storageText');
-  if (!dot || !text) return;
-  if (ok) {
-    dot.classList.remove('warn');
-    const now = new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
-    text.textContent = `Datos guardados automáticamente · ${history.length} piezas en historial · Última vez: ${now}`;
-  } else {
-    dot.classList.add('warn');
-    text.textContent = 'Advertencia: No se pudieron guardar los datos en este navegador.';
-  }
-}
-
-/* ── GITHUB SYNC ── */
-const GH_REPO    = 'lcvalles/dorium';
-const GH_FILE    = 'datos-dorium.json';
-const GH_RAW     = `https://raw.githubusercontent.com/${GH_REPO}/master/${GH_FILE}`;
-const GH_API     = `https://api.github.com/repos/${GH_REPO}/contents/${GH_FILE}`;
-const LS_TOKEN   = 'dorium_gh_token';
-
-function getToken() { return localStorage.getItem(LS_TOKEN) || ''; }
-
-function abrirConfigToken() {
-  document.getElementById('inputToken').value = getToken();
-  document.getElementById('modalToken').classList.add('open');
-}
-function cerrarConfigToken() {
-  document.getElementById('modalToken').classList.remove('open');
-}
-function guardarToken() {
-  const t = document.getElementById('inputToken').value.trim();
-  if (!t) { showToast('Ingresa un token válido'); return; }
-  localStorage.setItem(LS_TOKEN, t);
-  cerrarConfigToken();
-  document.getElementById('btnPublicar').style.display = '';
-  showToast('Token guardado — ya puedes publicar');
-}
-
-function setPublishStatus(msg, tipo) {
-  const el = document.getElementById('publishStatus');
-  el.textContent = msg;
-  el.className = 'publish-status' + (tipo ? ' ' + tipo : '');
-}
-
-async function cargarDesdeGitHub() {
-  try {
-    const res = await fetch(GH_RAW + '?t=' + Date.now());
-    if (!res.ok) return false;
-    const data = await res.json();
-    if (!data.materials || !Array.isArray(data.materials)) return false;
-    materials = data.materials;
-    nextId    = data.nextId || 15;
-    saveToStorage();
-    setPublishStatus('Datos cargados desde la nube ✓', 'ok');
-    return true;
-  } catch(e) {
-    return false;
-  }
-}
-
-async function publicarEnGitHub() {
-  const token = getToken();
-  if (!token) { abrirConfigToken(); return; }
-
-  setPublishStatus('Publicando…', '');
-  const btn = document.getElementById('btnPublicar');
-  btn.disabled = true;
-
-  const payload = { materials, nextId, updatedAt: new Date().toISOString() };
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-
-  try {
-    // Obtener SHA actual del archivo (necesario para actualizarlo)
-    let sha = null;
-    const check = await fetch(GH_API, {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' }
-    });
-    if (check.ok) { const j = await check.json(); sha = j.sha; }
-
-    const body = { message: 'Actualizar datos calculadora', content };
-    if (sha) body.sha = sha;
-
-    const res = await fetch(GH_API, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (res.ok) {
-      const now = new Date().toLocaleTimeString('es-CO', {hour:'2-digit', minute:'2-digit'});
-      setPublishStatus(`Publicado a las ${now} ✓`, 'ok');
-      showToast('¡Datos publicados! Ya están disponibles para todos.');
-    } else {
-      const err = await res.json();
-      setPublishStatus('Error al publicar', 'err');
-      showToast('Error: ' + (err.message || res.status));
-    }
-  } catch(e) {
-    setPublishStatus('Error de conexión', 'err');
-    showToast('No se pudo conectar con GitHub');
-  }
-  btn.disabled = false;
-}
-
-function limpiarTodo() {
-  if (!confirm('¿Estás seguro? Se eliminarán TODOS los materiales e historial. Esta acción no se puede deshacer.')) return;
-  localStorage.removeItem(LS_MATERIALS);
-  localStorage.removeItem(LS_HISTORY);
-  localStorage.removeItem(LS_NEXTID);
-  localStorage.removeItem(LS_CURRENT);
-  materials  = [...DEFAULT_MATERIALS];
-  history    = [];
-  nextId     = 15;
-  ingredients = [];
-  saveToStorage();
-  renderMaterials();
-  renderIngredients();
-  renderHistory();
-  showToast('Datos limpiados. Materiales por defecto restaurados.');
 }
 
 /* ── FORMATEO ── */
@@ -732,23 +626,20 @@ function showTab(tab) {
   if (tab === 'historial')  renderHistory();
 }
 
-/* ── MATERIALS ── */
+/* ── MATERIALES ── */
 function renderMaterials() {
   const tbody = document.getElementById('mat-tbody');
+  if (!tbody) return;
   tbody.innerHTML = '';
   if (!materials.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#aaa;font-style:italic">No hay materiales registrados</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:#aaa;font-style:italic">No hay materiales</td></tr>';
     return;
   }
   materials.forEach(m => {
-    const up = unitPrice(m);
     const tipoCell = m.tipo ? `<span class="badge">${m.tipo}</span>` : '—';
     tbody.innerHTML += `<tr>
-      <td>${m.name}</td>
-      <td>${tipoCell}</td>
-      <td>${m.qty}</td>
-      <td>${fmt(m.price)}</td>
-      <td>${fmt(up)}</td>
+      <td>${m.name}</td><td>${tipoCell}</td><td>${m.qty}</td>
+      <td>${fmt(m.price)}</td><td>${fmt(unitPrice(m))}</td>
       <td><button class="btn-danger" onclick="deleteMaterial(${m.id})">Eliminar</button></td>
     </tr>`;
   });
@@ -757,62 +648,52 @@ function renderMaterials() {
 function addMaterial() {
   const name  = document.getElementById('new-name').value.trim();
   const tipo  = document.getElementById('new-tipo').value.trim();
-  const qty   = parseInt(document.getElementById('new-qty').value)    || 1;
+  const qty   = parseInt(document.getElementById('new-qty').value)     || 1;
   const price = parseFloat(document.getElementById('new-price').value) || 0;
-  if (!name)    { showToast('Escribe el nombre del material'); return; }
+  if (!name)      { showToast('Escribe el nombre del material'); return; }
   if (price <= 0) { showToast('Ingresa un precio válido'); return; }
-  materials.push({id: nextId++, name, tipo, qty, price});
+  materials.push({ id: nextId++, name, tipo, qty, price });
   document.getElementById('new-name').value  = '';
   document.getElementById('new-tipo').value  = '';
   document.getElementById('new-qty').value   = '10';
   document.getElementById('new-price').value = '';
-  saveToStorage();
-  renderMaterials();
+  saveMaterials();
   renderIngredients();
-  showToast('Material agregado y guardado');
 }
 
 function deleteMaterial(id) {
   if (!confirm('¿Eliminar este material?')) return;
   materials   = materials.filter(m => m.id !== id);
   ingredients = ingredients.filter(i => i.matId !== id);
-  saveToStorage();
-  renderMaterials();
+  saveMaterials();
   renderIngredients();
 }
 
-/* ── INGREDIENTS ── */
+/* ── INGREDIENTES ── */
 function addIngredient() {
-  if (!materials.length) { showToast('Primero agrega materiales en la pestaña Materiales'); return; }
-  ingredients.push({matId: materials[0].id, qty: 1});
-  renderIngredients();
-  saveCurrentCalc();
+  if (!materials.length) { showToast('Primero agrega materiales'); return; }
+  ingredients.push({ matId: materials[0].id, qty: 1 });
+  renderIngredients(); saveCurrentCalc();
 }
-
 function removeIngredient(idx) {
   ingredients.splice(idx, 1);
-  renderIngredients();
-  saveCurrentCalc();
+  renderIngredients(); saveCurrentCalc();
 }
-
 function updateIngMat(idx, val) {
   ingredients[idx].matId = parseInt(val);
-  renderIngredients();
-  saveCurrentCalc();
+  renderIngredients(); saveCurrentCalc();
 }
-
 function updateIngQty(idx, val) {
   ingredients[idx].qty = Math.max(1, parseInt(val) || 1);
-  renderIngredients();
-  saveCurrentCalc();
+  renderIngredients(); saveCurrentCalc();
 }
 
 function renderIngredients() {
   const list = document.getElementById('ing-list');
+  if (!list) return;
   if (!ingredients.length) {
     list.innerHTML = '<div class="empty" style="padding:1rem 0 0.5rem">Aún no has agregado materiales a esta pieza</div>';
-    recalc();
-    return;
+    recalc(); return;
   }
   list.innerHTML = '';
   ingredients.forEach((ing, idx) => {
@@ -827,8 +708,7 @@ function renderIngredients() {
       <select onchange="updateIngMat(${idx}, this.value)">${options}</select>
       <input type="number" min="1" value="${ing.qty}" onchange="updateIngQty(${idx}, this.value)" />
       <span class="ing-cost">${fmt(cost)}</span>
-      <button class="btn-remove" onclick="removeIngredient(${idx})" title="Quitar">×</button>
-    `;
+      <button class="btn-remove" onclick="removeIngredient(${idx})" title="Quitar">×</button>`;
     list.appendChild(row);
   });
   recalc();
@@ -836,16 +716,15 @@ function renderIngredients() {
 
 /* ── RECALC ── */
 function recalc() {
-  const matCost = ingredients.reduce((sum, ing) => {
+  const matCost = ingredients.reduce((s, ing) => {
     const m = materials.find(m => m.id === ing.matId);
-    return sum + (m ? unitPrice(m) * ing.qty : 0);
+    return s + (m ? unitPrice(m) * ing.qty : 0);
   }, 0);
   const labor  = parseFloat(document.getElementById('cfg-labor')?.value)  || 0;
   const extra  = parseFloat(document.getElementById('cfg-extra')?.value)  || 0;
   const margin = parseFloat(document.getElementById('cfg-margin')?.value) || 0;
   const total  = matCost + labor + extra;
   const sale   = total * (1 + margin / 100);
-
   document.getElementById('r-mat').textContent   = fmt(matCost);
   document.getElementById('r-labor').textContent = fmt(labor);
   document.getElementById('r-extra').textContent = fmt(extra);
@@ -854,35 +733,36 @@ function recalc() {
   document.getElementById('r-note').textContent  = `Con ${margin}% de margen sobre el costo total`;
 }
 
-/* ── SAVE ── */
+/* ── GUARDAR MANILLA ── */
 function saveManilla() {
+  if (!vendorName) { abrirModalVendedor(); return; }
   const name = document.getElementById('manilla-name').value.trim() || 'Manilla sin nombre';
-  const matCost = ingredients.reduce((sum, ing) => {
+  const matCost = ingredients.reduce((s, ing) => {
     const m = materials.find(m => m.id === ing.matId);
-    return sum + (m ? unitPrice(m) * ing.qty : 0);
+    return s + (m ? unitPrice(m) * ing.qty : 0);
   }, 0);
-  const labor  = parseFloat(document.getElementById('cfg-labor').value)  || 0;
-  const extra  = parseFloat(document.getElementById('cfg-extra').value)  || 0;
-  const margin = parseFloat(document.getElementById('cfg-margin').value) || 0;
-  const total  = matCost + labor + extra;
-  const sale   = total * (1 + margin / 100);
+  const labor   = parseFloat(document.getElementById('cfg-labor').value)  || 0;
+  const extra   = parseFloat(document.getElementById('cfg-extra').value)  || 0;
+  const margin  = parseFloat(document.getElementById('cfg-margin').value) || 0;
+  const total   = matCost + labor + extra;
+  const sale    = total * (1 + margin / 100);
   const summary = ingredients.map(ing => {
     const m = materials.find(m => m.id === ing.matId);
     return m ? `${ing.qty}× ${matLabel(m)}` : '';
   }).filter(Boolean).join(', ');
 
-  history.unshift({
+  db.ref('historial/' + vendorName).push({
     name, matCost, labor, extra, total, sale, margin, summary,
+    vendedor: vendorName,
     date: new Date().toLocaleDateString('es-CO', {day:'2-digit', month:'short', year:'numeric'})
-  });
-  saveToStorage();
-  showToast('¡Guardada en el historial!');
-  renderHistory();
+  }).then(() => showToast('¡Guardada en historial! ✓'))
+    .catch(() => showToast('Error al guardar'));
 }
 
-/* ── HISTORY ── */
+/* ── HISTORIAL ── */
 function renderHistory() {
   const cont = document.getElementById('history-list');
+  if (!cont) return;
   if (!history.length) {
     cont.innerHTML = '<div class="empty">Aún no has guardado ninguna pieza</div>';
     return;
@@ -897,15 +777,25 @@ function renderHistory() {
       <div class="history-price">${fmt(h.sale)}</div>
       <div class="history-date">${h.date}</div>
       <button class="btn-danger" onclick="deleteHistory(${i})">×</button>
-    </div>
-  `).join('');
+    </div>`).join('');
 }
 
 function deleteHistory(i) {
   if (!confirm('¿Eliminar esta pieza del historial?')) return;
-  history.splice(i, 1);
-  saveToStorage();
-  renderHistory();
+  const key = historyKeys[historyKeys.length - 1 - i];
+  db.ref('historial/' + vendorName + '/' + key).remove()
+    .then(() => showToast('Eliminada'))
+    .catch(() => showToast('Error al eliminar'));
+}
+
+/* ── LIMPIAR CÁLCULO ACTUAL ── */
+function limpiarCalc() {
+  if (!confirm('¿Limpiar el cálculo actual?')) return;
+  document.getElementById('manilla-name').value = '';
+  ingredients = [];
+  localStorage.removeItem(LS_CURRENT);
+  renderIngredients();
+  recalc();
 }
 
 /* ── TOAST ── */
@@ -917,22 +807,19 @@ function showToast(msg) {
 }
 
 /* ── INIT ── */
-loadFromStorage();
+vendorName = localStorage.getItem(LS_VENDOR) || '';
+document.getElementById('vendorLabel').textContent = vendorName || '—';
+if (!vendorName) {
+  document.getElementById('modalVendedor').classList.add('open');
+} else {
+  suscribirHistorial();
+}
 loadCurrentCalc();
 renderIngredients();
 recalc();
 
-// Mostrar botón publicar si ya hay token guardado
-if (getToken()) document.getElementById('btnPublicar').style.display = '';
-
-// Cargar materiales desde GitHub (para todos los usuarios)
-cargarDesdeGitHub().then(ok => {
-  if (ok) { renderIngredients(); renderMaterials(); }
-});
-
-// Cerrar modal al hacer clic fuera
-document.getElementById('modalToken').addEventListener('click', function(e) {
-  if (e.target === this) cerrarConfigToken();
+document.getElementById('modalVendedor').addEventListener('click', function(e) {
+  if (e.target === this && vendorName) this.classList.remove('open');
 });
 </script>
 </body>
