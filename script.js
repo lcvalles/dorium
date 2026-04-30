@@ -21,7 +21,7 @@
    Formato: código de país + número (sin +, sin espacios)
    Ejemplo Colombia:  573001234567
    ════════════════════════════════════════ */
-const WHATSAPP_NUMBER = '573000000000';   // ← CAMBIA AQUÍ TU NÚMERO
+const WHATSAPP_NUMBER = '573016610131';   // ← CAMBIA AQUÍ TU NÚMERO
 
 
 /* ════════════════════════════════════════
