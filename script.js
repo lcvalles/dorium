@@ -126,11 +126,6 @@ function renderCatalog() {
   if (!grid) return;
 
   grid.innerHTML = PRODUCTOS.map(p => {
-    const precio = new Intl.NumberFormat('es-CO', {
-      style: 'currency', currency: 'COP',
-      minimumFractionDigits: 0, maximumFractionDigits: 0
-    }).format(p.precio);
-
     const imagenHTML = p.imagen
       ? `<img src="${p.imagen}" alt="${p.nombre}" loading="lazy" class="product-img-zoom" onclick="openLightbox('${p.imagen}','${p.nombre}')" />`
       : `<div class="product-image-placeholder">
@@ -144,7 +139,7 @@ function renderCatalog() {
       ? `<span class="product-badge">${p.badge}</span>`
       : '';
 
-    const msg = encodeURIComponent(`Hola, me interesa la *${p.nombre}* (${precio}). ¿Está disponible?`);
+    const msg = encodeURIComponent(`Hola, me interesa la *${p.nombre}*. ¿Está disponible?`);
 
     return `
       <article class="product-card">
@@ -157,10 +152,6 @@ function renderCatalog() {
           <p class="product-materials">${p.materiales}</p>
           <p class="product-story">"${p.historia}"</p>
           <div class="product-footer">
-            <div>
-              <p class="product-price">${precio}</p>
-              <p class="product-price-sub">Precio aprox.</p>
-            </div>
             <a href="https://wa.me/${WHATSAPP_NUMBER}?text=${msg}"
                class="product-btn" target="_blank" rel="noopener">
               Pedir ✦
