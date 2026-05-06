@@ -43,39 +43,75 @@ const WHATSAPP_NUMBER = '573016610131';   // ← CAMBIA AQUÍ TU NÚMERO
 const PRODUCTOS = [
   {
     id: 1,
-    nombre: "Manilla Sol Negro",
+    nombre: "Manilla Esmeralda",
     precio: 140000,
-    historia: "Tejida con hilo negro profundo, sus balines de oro 18K evocan los rayos del sol que atraviesan la noche. Para quien lleva luz en la oscuridad.",
-    materiales: "Hilo negro · Balines oro 18K · 3 unidades",
-    imagen: "assets/images/manilla-negra-1.png",
+    historia: "El verde esmeralda es símbolo de abundancia y crecimiento. Sus balines de oro 18K evocan la riqueza natural de Colombia.",
+    materiales: "Hilo verde esmeralda · Balines oro 18K",
+    imagen: "assets/images/manilla-Esmeralda.png",
     badge: "Favorito"
   },
   {
     id: 2,
-    nombre: "Manilla Hilo Rojo",
-    precio: 100000,
-    historia: "El rojo es el color de la pasión y la energía vital. Sus balines dorados conectan el fuego interior con el universo exterior.",
-    materiales: "Hilo rojo · Balines oro 18K · 3 unidades",
-    imagen: "assets/images/manilla-roja-1.png",
+    nombre: "Manilla Nocturna",
+    precio: 140000,
+    historia: "Tejida con hilo negro profundo, sus balines de oro 18K evocan los rayos del sol que atraviesan la noche. Para quien lleva luz en la oscuridad.",
+    materiales: "Hilo negro · Balines oro 18K",
+    imagen: "assets/images/manilla-Nocturna.png",
+    badge: ""
+  },
+  {
+    id: 3,
+    nombre: "Manilla Azul Celestial",
+    precio: 140000,
+    historia: "El azul del cielo despejado. Una manilla que transmite calma, claridad mental y conexión con lo infinito.",
+    materiales: "Hilo azul celestial · Balines oro 18K",
+    imagen: "assets/images/manilla-Azul-Celestial.png",
     badge: "Nuevo"
   },
   {
     id: 4,
-    nombre: "Manilla Aura",
-    precio: 195000,
-    historia: "Una pieza que irradia energía y presencia. Sus balines de oro 18K capturan la luz como un aura dorada alrededor de la muñeca.",
+    nombre: "Manilla Cielo Sereno",
+    precio: 140000,
+    historia: "La serenidad hecha joya. Su tono suave inspira paz interior y equilibrio en cada momento del día.",
+    materiales: "Hilo celeste · Balines oro 18K",
+    imagen: "assets/images/manilla-Cielo-Sereno.png",
+    badge: ""
+  },
+  {
+    id: 5,
+    nombre: "Manilla Esencia",
+    precio: 140000,
+    historia: "Una pieza que captura la esencia de quien la porta. Discreta, elegante y llena de intención.",
     materiales: "Hilo · Balines oro 18K",
-    imagen: "assets/images/manilla-aura-1.png",
+    imagen: "assets/images/manilla-Esencia.png",
+    badge: ""
+  },
+  {
+    id: 6,
+    nombre: "Manilla Rojo Pasión",
+    precio: 140000,
+    historia: "El rojo es el color de la pasión y la energía vital. Sus balines dorados conectan el fuego interior con el universo exterior.",
+    materiales: "Hilo rojo · Balines oro 18K",
+    imagen: "assets/images/manilla-Rojo-Pasion.png",
+    badge: ""
+  },
+  {
+    id: 7,
+    nombre: "Manilla Rose Luz",
+    precio: 140000,
+    historia: "Rosa suave como la luz del amanecer. Una pieza delicada que irradia ternura, amor propio y feminidad.",
+    materiales: "Hilo rosa · Balines oro 18K",
+    imagen: "assets/images/manilla-Rose-Luz.png",
     badge: "Nuevo"
   },
   /* ── AGREGA MÁS MANILLAS AQUÍ ──
   {
-    id: 5,
+    id: 8,
     nombre: "Nombre de tu manilla",
-    precio: 95000,
+    precio: 140000,
     historia: "Historia o significado de esta pieza.",
-    materiales: "Hilo [color] · Balines oro 18K · [N] unidades",
-    imagen: "assets/images/nombre-foto.jpg",
+    materiales: "Hilo [color] · Balines oro 18K",
+    imagen: "assets/images/nombre-foto.png",
     badge: "Nuevo"
   },
   ── FIN ── */
